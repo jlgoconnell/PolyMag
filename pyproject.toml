@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pylyhedralmagnet"
+name = "polymag"
 version = "0.0.1"
 authors = [
   { name="James O'Connell", email="contact@jameslg.com" },
