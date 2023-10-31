@@ -31,7 +31,3 @@ def test_frustum_magnet_field():
     field_strengths = np.linalg.norm(fld, axis=1)
 
     assert np.abs(np.max(field_strengths) - 0.633) < 0.001  # Result from my PhD
-
-
-if __name__ == "__main__":
-    test_frustum_magnet_field()

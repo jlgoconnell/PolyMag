@@ -11,6 +11,24 @@ def test_singularities():
         magnetisation=np.array([0, 0, 1]),
     )
 
+    tri2 = ChargedTriangle(
+        vertices=np.array([[0, 1, 0], [0, -1, 0], [1, 0, 0]]),
+        normal=np.array([0, 0, 1]),
+        magnetisation=np.array([0, 0, 1]),
+    )
+    temp = tri2.calc_field(
+        np.array(
+            [
+                [0, 1, 1e-12],
+                [0, 1, -1e-12],
+                [0, -1, 1e-12],
+                [0, -1, -1e-12],
+                [1, 0, 1e-12],
+                [1, 0, -1e-12],
+            ]
+        )
+    )
+
     fld = tri.calc_field(
         np.array(
             [
@@ -33,3 +51,7 @@ def test_singularities():
     expected_y_signs = [-1, 1, 1]
     assert (np.sign(fld[:, 0]) == np.array(expected_x_signs)).all()
     assert (np.sign(fld[:, 1]) == np.array(expected_y_signs)).all()
+
+
+if __name__ == "__main__":
+    test_singularities()
