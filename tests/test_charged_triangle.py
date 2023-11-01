@@ -3,6 +3,16 @@ import numpy as np
 from polymag.charged_triangle import ChargedTriangle
 
 
+def test_generate_points():
+    tri = ChargedTriangle(
+        vertices=np.array([[0, 0, 0], [0, 0, 1], [0, 1, 1]]),
+        normal=np.array([0, 0, 1]),
+        magnetisation=np.array([0, 0, 1]),
+    )
+    points = tri.generate_force_points(2)
+    print(points)
+
+
 def test_singularities():
     # Create a triangle
     tri = ChargedTriangle(
@@ -55,3 +65,4 @@ def test_singularities():
 
 if __name__ == "__main__":
     test_singularities()
+    test_generate_points()
