@@ -1,27 +1,49 @@
 import numpy as np
 
+from polymag.magnet_node import MagnetNode
+
 
 class ChargedTriangle:
     def __init__(
-        self, vertices: np.ndarray, normal: np.ndarray, magnetisation: np.ndarray
+        self, nodes: list[MagnetNode], normal: np.array, magnetisation: np.array
     ) -> None:
-        self.normal = normal
-        self.vertices = vertices
-        self.charge = np.dot(magnetisation, self.normal)
+        self._nodes = nodes
+        self._normal = normal
+        self._mag = magnetisation
+        self._charge = np.dot(self._mag, self._normal)
 
+    def calculate_rot_matrix(self) -> np.ndarray:
         # Set up the desired local coordinate system
-        local_y = np.array(self.vertices[1] - self.vertices[0])
+        local_y = np.array(self._nodes[1].position - self._nodes[0].position)
         local_y = local_y / np.sqrt(np.sum(local_y**2))
-        local_x = np.array(self.vertices[2] - self.vertices[0])
+        local_x = np.array(self._nodes[2].position - self._nodes[0].position)
         local_z = np.cross(local_x, local_y)
         local_z = local_z / np.sqrt(np.sum(local_z**2))
         local_x = np.cross(local_y, local_z)
         local_x = local_x / np.sqrt(np.sum(local_x**2))
-        # The rotation matrix required to convert between the local and global frame
-        self.R = np.array([local_x, local_y, local_z])
 
-        # Calculate necessary parameters in local frame
-        pts = self.vertices @ self.R.T
+        # The rotation matrix required to convert between the local and global frame
+        R = np.array([local_x, local_y, local_z])
+
+        return R
+
+    @property
+    def charge(self) -> float:
+        return self._charge
+
+    def calc_field(self, points: np.ndarray) -> np.ndarray:
+        # Rounding number to account for numeric precision
+        rnd_num = 9
+
+        # If the surface charge is zero, return nothing
+        if np.round(self._charge, rnd_num) == 0:
+            return np.array(np.zeros(np.shape(points)))
+
+        # Calculate rotation matrix
+        R = self.calculate_rot_matrix()
+
+        # Calculate local vertices
+        pts = np.vstack([node.position @ R.T for node in self._nodes])
         self.x1 = pts[0, 0]
         self.x3 = pts[2, 0]
         self.y1 = pts[0, 1]
@@ -29,37 +51,8 @@ class ChargedTriangle:
         self.y3 = pts[2, 1]
         self.z = pts[2, 2]
 
-    def generate_force_points(self, num_divisions: int) -> np.ndarray:
-        # Generate a collection of somewhat equally-spaced points
-        # at which to calculate the field for force/torque/etc computation
-        inds = [3 * i + 1 for i in range(num_divisions)]
-        p1, p2 = np.meshgrid(inds, inds)
-        local_points = np.array(
-            [p1.flatten() / num_divisions / 3, p2.flatten() / num_divisions / 3]
-        ).T
-        local_points[np.sum(local_points, axis=1) > 1, :] = (
-            1 - local_points[np.sum(local_points, axis=1) > 1, :]
-        )
-        points = np.array(
-            [
-                self.vertices[0]
-                + local_points[i, 0] * (self.vertices[1] - self.vertices[0])
-                + local_points[i, 1] * (self.vertices[2] - self.vertices[0])
-                for i in range(num_divisions**2)
-            ]
-        )
-        return points
-
-    def calc_field(self, points: np.ndarray) -> np.ndarray:
-        # Rounding number to account for numeric precision
-        rnd_num = 12
-
-        # If the surface charge is zero, return nothing
-        if np.round(self.charge, rnd_num) == 0:
-            return np.array(np.zeros(np.shape(points)))
-
         # Rotate points to local coordinate system
-        local_points = np.array(points @ self.R.T)
+        local_points = np.array(points @ R.T)
 
         # All the cheeky calculations
         Xp1 = local_points[:, 0] - self.x1
@@ -119,6 +112,8 @@ class ChargedTriangle:
             + np.arctan2(N22, Dp2)
         )
 
-        B = np.array([b_x, b_y, b_z]).T @ self.R * self.charge / (4 * np.pi)
+        B = np.round(
+            np.array([b_x, b_y, b_z]).T @ R * self._charge / (4 * np.pi), rnd_num
+        )
 
         return B

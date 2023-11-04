@@ -5,6 +5,7 @@ import scipy.spatial
 
 from polymag.charged_triangle import ChargedTriangle
 from polymag.i_magnet import IMagnet
+from polymag.magnet_node import MagnetNode
 
 
 class Magnet(IMagnet):
@@ -17,19 +18,31 @@ class Magnet(IMagnet):
     ) -> None:
         self._vertices: np.ndarray = vertices
         self._mag: np.ndarray = magnetisation
-        self.hull: scipy.spatial.ConvexHull = scipy.spatial.ConvexHull(self._vertices)
         self._mu: float = mu
         self._mu_r: float = mu_r
 
-        # Set up triangular surface objects
+        # Create convex hull
+        self._hull: scipy.spatial.ConvexHull = scipy.spatial.ConvexHull(self._vertices)
+
+        # Set up initial magnet nodes
+        self._nodes: list[MagnetNode] = [
+            MagnetNode(position=pos) for pos in self._hull.points
+        ]
+
+        # Set up triangular surfaces
         self._triangles: list[ChargedTriangle] = [
             ChargedTriangle(
-                self.hull.points[self.hull.simplices[ii]],
-                self.hull.equations[ii][:3],
+                [self._nodes[index] for index in self._hull.simplices[ii]],
+                self._hull.equations[ii][:3],
                 self._mag,
             )
-            for ii in range(len(self.hull.simplices))
+            for ii in range(len(self._hull.simplices))
         ]
+        pass
+
+    def inside_magnet(self, point: np.ndarray) -> list[bool]:
+        # ToDo: Check if any points are inside the magnet
+        return [True]
 
     def calc_field(self, points: np.ndarray) -> np.ndarray:
         # Error handling:
