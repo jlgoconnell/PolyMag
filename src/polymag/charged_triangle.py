@@ -5,12 +5,11 @@ from polymag.magnet_node import MagnetNode
 
 class ChargedTriangle:
     def __init__(
-        self, nodes: list[MagnetNode], normal: np.array, magnetisation: np.array
+        self, nodes: list[MagnetNode], normal: np.array, charge: float
     ) -> None:
         self._nodes = nodes
         self._normal = normal
-        self._mag = magnetisation
-        self._charge = np.dot(self._mag, self._normal)
+        self._charge = charge
 
         # Calculate area
         self.area = 0.5 * np.linalg.norm(
@@ -25,9 +24,6 @@ class ChargedTriangle:
 
     def normal(self) -> np.array:
         return self._normal
-
-    def magnetisation(self) -> float:
-        return self._mag
 
     def calculate_rot_matrix(self) -> np.ndarray:
         # Set up the desired local coordinate system

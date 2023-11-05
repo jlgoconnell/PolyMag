@@ -30,18 +30,21 @@ class Magnet(IMagnet):
         ]
 
         # Set up triangular surfaces
+        charges = [
+            np.dot(self._hull.equations[ii][:3], self._mag)
+            for ii in range(len(self._hull.simplices))
+        ]
         self._triangles: list[ChargedTriangle] = [
             ChargedTriangle(
                 [self._nodes[index] for index in self._hull.simplices[ii]],
                 self._hull.equations[ii][:3],
-                self._mag,
+                charges[ii],
             )
             for ii in range(len(self._hull.simplices))
         ]
-        pass
 
     def _subdivide_triangle_recursion(
-        self, nodes: list[MagnetNode], n: int, normal: np.array, mag: np.array
+        self, nodes: list[MagnetNode], n: int, normal: np.array, charge: float
     ) -> None:
         if n >= 2:
             node_br = nodes[1]
@@ -73,36 +76,41 @@ class Magnet(IMagnet):
                     ChargedTriangle(
                         nodes=[node_bl, node_tl, node_br],
                         normal=normal,
-                        magnetisation=mag,
+                        charge=charge,
                     )
                 )
                 self._triangles.append(
                     ChargedTriangle(
                         nodes=[node_tl, node_br, node_tr],
                         normal=normal,
-                        magnetisation=mag,
+                        charge=charge,
                     )
                 )
             # Add the last triangle
             self._triangles.append(
                 ChargedTriangle(
-                    [self._nodes[-1], self._nodes[-2], nodes[2]], normal, mag
+                    [self._nodes[-1], self._nodes[-2], nodes[2]], normal, charge=charge
                 )
             )
             new_nodes = [nodes[0], self._nodes[temp_node_idx], self._nodes[-1]]
-            self._subdivide_triangle_recursion(new_nodes, n - 1, normal, mag)
+            self._subdivide_triangle_recursion(new_nodes, n - 1, normal, charge)
         else:
             self._triangles.append(
-                ChargedTriangle(nodes=nodes, normal=normal, magnetisation=mag)
+                ChargedTriangle(nodes=nodes, normal=normal, charge=charge)
             )
 
-    def subdivide_triangle(self, triangle: ChargedTriangle, n: int) -> None:
+    def subdivide_triangles(self, triangles: list[ChargedTriangle], n: int) -> None:
         # Recursively subdivide a triangle
-        nodes = triangle.nodes()
-        normal = triangle.normal()
-        mag = triangle.magnetisation()
-        self._subdivide_triangle_recursion(nodes=nodes, n=n, normal=normal, mag=mag)
-        self._triangles.remove(triangle)
+        for triangle in triangles[::-1]:
+            nodes = triangle.nodes()
+            normal = triangle.normal()
+            charge = triangle.charge
+            self._subdivide_triangle_recursion(
+                nodes=nodes, n=n, normal=normal, charge=charge
+            )
+
+            # Remove the triangle from the magnet list
+            self._triangles.remove(triangle)
 
     def inside_magnet(self, point: np.ndarray) -> list[bool]:
         # ToDo: Check if any points are inside the magnet
