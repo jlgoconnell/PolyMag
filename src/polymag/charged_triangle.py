@@ -12,6 +12,23 @@ class ChargedTriangle:
         self._mag = magnetisation
         self._charge = np.dot(self._mag, self._normal)
 
+        # Calculate area
+        self.area = 0.5 * np.linalg.norm(
+            np.cross(
+                self._nodes[1].position - self._nodes[0].position,
+                self._nodes[2].position - self._nodes[0].position,
+            )
+        )
+
+    def nodes(self) -> list[MagnetNode]:
+        return self._nodes
+
+    def normal(self) -> np.array:
+        return self._normal
+
+    def magnetisation(self) -> float:
+        return self._mag
+
     def calculate_rot_matrix(self) -> np.ndarray:
         # Set up the desired local coordinate system
         local_y = np.array(self._nodes[1].position - self._nodes[0].position)
